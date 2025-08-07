@@ -1,12 +1,10 @@
-name: Build and Test on Main
+name: Build and Test
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build:
@@ -36,7 +34,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgtk-3-dev \
+            libwebkit2gtk-4.0-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
 
       - name: Install frontend dependencies
         run: npm install
@@ -44,8 +51,32 @@ jobs:
       - name: Build Tauri application
         uses: tauri-apps/tauri-action@v0
 
-      - name: Upload build artifacts
+      - name: Prepare artifact details
+        id: prepare_artifact
+        shell: bash
+        run: |
+          ARCH=$(echo "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')
+          ARTIFACT_PATH=""
+          ARTIFACT_NAME=""
+
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            ARTIFACT_PATH=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" -print -quit)
+            ARTIFACT_NAME="clipboard-viewer-latest-mac-${ARCH}.dmg"
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            ARTIFACT_PATH=$(find src-tauri/target/release/bundle/msi -name "*.msi" -print -quit)
+            ARTIFACT_NAME="clipboard-viewer-latest-win-${ARCH}.msi"
+          elif [ "${{ runner.os }}" == "Linux" ]; then
+            ARTIFACT_PATH=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" -print -quit)
+            ARTIFACT_NAME="clipboard-viewer-latest-linux-${ARCH}.AppImage"
+          fi
+          
+          echo "Found artifact at: ${ARTIFACT_PATH}"
+          echo "New artifact name: ${ARTIFACT_NAME}"
+          echo "path=${ARTIFACT_PATH}" >> $GITHUB_OUTPUT
+          echo "name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts-${{ matrix.platform }}
-          path: src-tauri/target/release/bundle/
+          name: ${{ steps.prepare_artifact.outputs.name }}
+          path: ${{ steps.prepare_artifact.outputs.path }}
