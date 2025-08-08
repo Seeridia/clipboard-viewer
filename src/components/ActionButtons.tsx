@@ -1,22 +1,17 @@
-import React from 'react';
-import { useClipboardStore } from '../store/useClipboardStore';
-import { Copy, Trash2, Loader2 } from 'lucide-react';
+import React from "react";
+import { useClipboardStore } from "../store/useClipboardStore";
+import { Copy, Trash2, Loader2 } from "lucide-react";
 
 interface ActionButtonsProps {
   className?: string;
 }
 
-export const ActionButtons: React.FC<ActionButtonsProps> = ({ 
-  className = "" 
+export const ActionButtons: React.FC<ActionButtonsProps> = ({
+  className = "",
 }) => {
-  const { 
-    content, 
-    status, 
-    handleCopy, 
-    clearContent 
-  } = useClipboardStore();
+  const { content, status, handleCopy, clearContent } = useClipboardStore();
 
-  const isLoading = status === 'copying';
+  const isLoading = status === "copying";
   const hasContent = content.trim().length > 0;
 
   return (

@@ -15,7 +15,7 @@ import {
   isClipboardAPISupported, 
   isSecureContext
 } from '../utils/clipboard';
-import { AlertTriangle, Clipboard, Search, Edit3, Bug } from 'lucide-react';
+import { AlertTriangle, Search, Edit3, Bug } from 'lucide-react';
 import { AppMode } from '../types';
 
 interface ClipboardDebugToolProps {
@@ -91,16 +91,22 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
     <div className={`w-full max-w-4xl mx-auto ${className}`}>
       {/* 状态消息 */}
       <StatusMessage />
-      
+
       {/* 主标题 */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
-          <div className="p-3 bg-blue-100 rounded-full">
-            <Clipboard className="w-8 h-8 text-blue-600" />
-          </div>
+            <img 
+              src="/src/assets/logo.svg" 
+              alt="Clipboard Viewer Logo" 
+              className="w-16 h-16"
+            />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Clipboard Viewer</h1>
-        <p className="text-lg text-gray-600">强大的剪贴板内容查看和解析工具，支持多种数据格式</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Clipboard Viewer
+        </h1>
+        <p className="text-lg text-gray-600">
+          强大的剪贴板内容查看和解析工具，支持多种数据格式
+        </p>
       </div>
 
       {/* 兼容性警告 */}
@@ -133,13 +139,17 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
                 onClick={() => setMode(tab.id)}
                 className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   mode === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                <span className={`mr-2 transition-colors ${
-                  mode === tab.id ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'
-                }`}>
+                <span
+                  className={`mr-2 transition-colors ${
+                    mode === tab.id
+                      ? "text-blue-500"
+                      : "text-gray-400 group-hover:text-gray-500"
+                  }`}
+                >
                   {tab.icon}
                 </span>
                 <span>{tab.label}</span>
@@ -147,28 +157,26 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
             ))}
           </nav>
         </div>
-        
-        {/* 标签页描述 */}
-        <div className="mt-4 text-center">
 
-        </div>
+        {/* 标签页描述 */}
+        <div className="mt-4 text-center"></div>
       </div>
 
       {/* 主要内容区域 */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        {mode === 'write' ? (
+        {mode === "write" ? (
           /* 写入模式 */
           <div className="p-6 space-y-6">
             {/* 文本输入区域 */}
             <TextInput />
-            
+
             {/* 格式选择器 */}
             <FormatSelector />
-            
+
             {/* 操作按钮 */}
             <ActionButtons />
           </div>
-        ) : mode === 'inspector' ? (
+        ) : mode === "inspector" ? (
           /* 检查器模式 */
           <div className="p-6">
             <ClipboardInspector />
@@ -180,12 +188,12 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
             <div className="p-6 border-b border-gray-200">
               <PasteDetector />
             </div>
-            
+
             {/* 历史记录 */}
             <div className="px-6">
               <HistoryViewer />
             </div>
-            
+
             {/* 解析结果 */}
             {parseData && (
               <div className="space-y-6">
@@ -193,7 +201,7 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
                 <div className="px-6">
                   <FormatAnalyzer />
                 </div>
-                
+
                 {/* 数据详情 */}
                 {parseData.length > 0 && (
                   <div className="border-t border-gray-200 bg-gray-50/30">
@@ -204,7 +212,9 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
                             <Search className="w-5 h-5 text-blue-600" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-gray-900">数据详情</h3>
+                            <h3 className="text-xl font-bold text-gray-900">
+                              数据详情
+                            </h3>
                             <p className="text-sm text-gray-500 mt-1">
                               共发现 {parseData.length} 个数据项
                             </p>
@@ -216,9 +226,9 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
                       </div>
                       <div className="space-y-4">
                         {parseData.map((item, index) => (
-                          <DataViewer 
+                          <DataViewer
                             key={`${item.type}-${index}`}
-                            item={item} 
+                            item={item}
                             index={index}
                           />
                         ))}
@@ -228,7 +238,7 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
                 )}
               </div>
             )}
-            
+
             {/* 空状态 */}
             {!parseData && (
               <div className="px-6 pb-6 text-center py-12">
@@ -240,7 +250,8 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
                     等待剪贴板内容
                   </h3>
                   <p className="text-gray-500 max-w-sm">
-                    使用 Ctrl+V 粘贴内容到此页面，或点击上方的"手动解析"按钮来分析当前剪贴板内容
+                    使用 Ctrl+V
+                    粘贴内容到此页面，或点击上方的"手动解析"按钮来分析当前剪贴板内容
                   </p>
                 </div>
               </div>
@@ -248,23 +259,25 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
           </div>
         )}
       </div>
-      
+
       {/* 使用说明 */}
       <div className="mt-6 text-center text-sm text-gray-500">
-        {mode === 'write' ? (
+        {mode === "write" ? (
           <div>
             <p>
               在上方输入框中输入内容，选择复制格式，然后点击"复制到剪贴板"按钮
             </p>
             <p className="mt-1">
-              支持键盘快捷键：<kbd className="px-2 py-1 bg-gray-100 rounded text-xs">Ctrl+C</kbd> 复制内容
+              支持键盘快捷键：
+              <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
+                Ctrl+C
+              </kbd>{" "}
+              复制内容
             </p>
           </div>
-        ) : mode === 'inspector' ? (
+        ) : mode === "inspector" ? (
           <div>
-            <p>
-              检查器提供详细的剪贴板环境信息和API兼容性诊断
-            </p>
+            <p>检查器提供详细的剪贴板环境信息和API兼容性诊断</p>
             <p className="mt-1">
               运行诊断可以检测浏览器支持、权限状态和API功能测试
             </p>
@@ -272,7 +285,11 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
         ) : (
           <div>
             <p>
-              使用 <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">Ctrl+V</kbd> 粘贴内容进行分析，
+              使用{" "}
+              <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">
+                Ctrl+V
+              </kbd>{" "}
+              粘贴内容进行分析，
               将文件或图片拖放到页面上，或点击"手动解析"按钮分析当前剪贴板内容
             </p>
             <p className="mt-1">

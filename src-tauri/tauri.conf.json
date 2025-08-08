@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Clipboard Viewer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.seeridia.clipboard-viewer",
   "build": {
     "frontendDist": "../dist",

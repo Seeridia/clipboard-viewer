@@ -1,14 +1,14 @@
-import React from 'react';
-import { useClipboardStore } from '../store/useClipboardStore';
+import React from "react";
+import { useClipboardStore } from "../store/useClipboardStore";
 
 interface TextInputProps {
   placeholder?: string;
   className?: string;
 }
 
-export const TextInput: React.FC<TextInputProps> = ({ 
+export const TextInput: React.FC<TextInputProps> = ({
   placeholder = "请输入要复制的内容...",
-  className = ""
+  className = "",
 }) => {
   const { content, setContent } = useClipboardStore();
 
@@ -18,8 +18,8 @@ export const TextInput: React.FC<TextInputProps> = ({
 
   return (
     <div className={`w-full ${className}`}>
-      <label 
-        htmlFor="content-input" 
+      <label
+        htmlFor="content-input"
         className="block text-sm font-medium text-gray-700 mb-2"
       >
         输入内容
@@ -39,9 +39,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           "placeholder:text-gray-400"
         }
       />
-      <div className="mt-2 text-sm text-gray-500">
-        字符数：{content.length}
-      </div>
+      <div className="mt-2 text-sm text-gray-500">字符数：{content.length}</div>
     </div>
   );
 };

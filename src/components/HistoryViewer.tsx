@@ -1,15 +1,11 @@
-import React from 'react';
-import { Clock, Trash2, RotateCcw, Eye, EyeOff } from 'lucide-react';
-import { useClipboardStore } from '../store/useClipboardStore';
-import { HistoryItem } from '../types';
+import React from "react";
+import { Clock, Trash2, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { useClipboardStore } from "../store/useClipboardStore";
+import { HistoryItem } from "../types";
 
 const HistoryViewer: React.FC = () => {
-  const {
-    history,
-    toggleHistoryVisibility,
-    clearHistory,
-    loadHistoryItem
-  } = useClipboardStore();
+  const { history, toggleHistoryVisibility, clearHistory, loadHistoryItem } =
+    useClipboardStore();
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -20,7 +16,7 @@ const HistoryViewer: React.FC = () => {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffMins < 1) {
-      return '刚刚';
+      return "刚刚";
     } else if (diffMins < 60) {
       return `${diffMins}分钟前`;
     } else if (diffHours < 24) {
@@ -28,19 +24,19 @@ const HistoryViewer: React.FC = () => {
     } else if (diffDays < 7) {
       return `${diffDays}天前`;
     } else {
-      return date.toLocaleDateString('zh-CN', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      return date.toLocaleDateString("zh-CN", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     }
   };
 
   const getDataTypesSummary = (historyItem: HistoryItem) => {
-    const types = historyItem.parseResult.data.map(item => item.type);
+    const types = historyItem.parseResult.data.map((item) => item.type);
     const uniqueTypes = [...new Set(types)];
-    return uniqueTypes.join(', ');
+    return uniqueTypes.join(", ");
   };
 
   return (
@@ -50,13 +46,15 @@ const HistoryViewer: React.FC = () => {
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-blue-600" />
           <h3 className="text-lg font-semibold text-gray-900">解析历史</h3>
-          <span className="text-sm text-gray-500">({history.items.length})</span>
+          <span className="text-sm text-gray-500">
+            ({history.items.length})
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleHistoryVisibility}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            title={history.isVisible ? '隐藏历史记录' : '显示历史记录'}
+            title={history.isVisible ? "隐藏历史记录" : "显示历史记录"}
           >
             {history.isVisible ? (
               <EyeOff className="w-4 h-4" />
@@ -107,7 +105,12 @@ const HistoryViewer: React.FC = () => {
                         数据类型: {getDataTypesSummary(item)}
                       </div>
                       <div className="text-xs text-gray-500">
-                        总大小: {item.parseResult.data.reduce((sum, data) => sum + data.size, 0)} 字节
+                        总大小:{" "}
+                        {item.parseResult.data.reduce(
+                          (sum, data) => sum + data.size,
+                          0
+                        )}{" "}
+                        字节
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
