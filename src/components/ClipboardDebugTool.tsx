@@ -96,7 +96,7 @@ export const ClipboardDebugTool: React.FC<ClipboardDebugToolProps> = ({
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
             <img 
-              src="/src/assets/logo.svg" 
+              src="/logo.svg" 
               alt="Clipboard Viewer Logo" 
               className="w-16 h-16"
             />
