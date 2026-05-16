@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tsconfigPaths from "vite-tsconfig-paths";
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -28,12 +27,14 @@ export default defineConfig({
     // Tauri supports es2021
     target: process.env.TAURI_PLATFORM == "windows" ? "chrome105" : "safari13",
     // don't minify for debug builds
-    minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
+    minify: !process.env.TAURI_DEBUG ? "oxc" : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
   },
+  resolve: {
+    tsconfigPaths: true,
+  },
   plugins: [
     react(),
-    tsconfigPaths()
   ],
 })
