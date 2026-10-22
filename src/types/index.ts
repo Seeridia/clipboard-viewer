@@ -1,23 +1,23 @@
 // 剪贴板格式类型
-export type ClipboardFormat = 'text/plain' | 'text/html' | 'text/rtf';
+export type ClipboardFormat = "text/plain" | "text/html" | "text/rtf";
 
 // 剪贴板数据类型
-export type ClipboardDataType = 
-  | 'text/plain' 
-  | 'text/html' 
-  | 'text/rtf'
-  | 'image/png' 
-  | 'image/jpeg' 
-  | 'image/gif' 
-  | 'image/webp'
-  | 'image/svg+xml'
-  | 'image/bmp'
-  | 'image/tiff'
-  | 'application/json'
-  | 'application/xml'
-  | 'application/pdf'
-  | 'files' 
-  | 'unknown';
+export type ClipboardDataType =
+  | "text/plain"
+  | "text/html"
+  | "text/rtf"
+  | "image/png"
+  | "image/jpeg"
+  | "image/gif"
+  | "image/webp"
+  | "image/svg+xml"
+  | "image/bmp"
+  | "image/tiff"
+  | "application/json"
+  | "application/xml"
+  | "application/pdf"
+  | "files"
+  | "unknown";
 
 // 文件信息接口
 export interface FileInfo {
@@ -44,8 +44,11 @@ export interface ClipboardDataItem {
   };
 }
 
+export type ClipboardInputSource = "paste" | "read" | "drop";
+
 // 剪贴板解析结果接口
 export interface ClipboardParseResult {
+  source?: ClipboardInputSource;
   success: boolean;
   message: string;
   data: ClipboardDataItem[];
@@ -53,24 +56,25 @@ export interface ClipboardParseResult {
 }
 
 // 应用功能模式
-export type AppMode = 'write' | 'parse' | 'inspector';
+export type AppMode = "write" | "parse" | "inspector";
 
 // 应用状态接口
 export interface AppState {
   // 写入功能状态
   content: string;
   format: ClipboardFormat;
-  status: 'idle' | 'copying' | 'success' | 'error';
+  status: "idle" | "copying" | "success" | "error";
   message: string;
-  
+
   // 解析功能状态
   parseData: ClipboardDataItem[];
-  parseStatus: 'idle' | 'parsing' | 'success' | 'error';
+  parseStatus: "idle" | "parsing" | "success" | "error";
   parseMessage: string;
-  
+  parseSource?: ClipboardInputSource;
+
   // 历史记录状态
   history: HistoryState;
-  
+
   // 通用状态
   mode: AppMode;
   lastParseTime?: number;
@@ -83,7 +87,7 @@ export interface CopyResult {
 }
 
 // 状态消息类型
-export type StatusType = 'success' | 'error' | 'info';
+export type StatusType = "success" | "error" | "info";
 
 // 状态消息接口
 export interface StatusMessage {

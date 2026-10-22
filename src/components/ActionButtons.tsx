@@ -1,67 +1,30 @@
-import React from "react";
-import { useClipboardStore } from "../store/useClipboardStore";
 import { Copy, Trash2, Loader2 } from "lucide-react";
+import { useClipboardStore } from "../store/useClipboardStore";
 
-interface ActionButtonsProps {
-  className?: string;
-}
-
-export const ActionButtons: React.FC<ActionButtonsProps> = ({
-  className = "",
-}) => {
+export function ActionButtons() {
   const { content, status, handleCopy, clearContent } = useClipboardStore();
-
-  const isLoading = status === "copying";
-  const hasContent = content.trim().length > 0;
-
   return (
-    <div className={`flex flex-col sm:flex-row gap-3 ${className}`}>
-      {/* 复制按钮 */}
+    <div className="write-actions">
       <button
+        className="primary-button"
         onClick={handleCopy}
-        disabled={!hasContent || isLoading}
-        className={
-          "flex items-center justify-center px-6 py-3 rounded-lg " +
-          "font-medium text-sm transition-all duration-200 " +
-          "focus:outline-none focus:ring-2 focus:ring-offset-2 " +
-          "disabled:cursor-not-allowed " +
-          (hasContent && !isLoading
-            ? "bg-blue-600 hover:bg-blue-700 text-white " +
-              "focus:ring-blue-500 shadow-sm hover:shadow-md"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed")
-        }
+        disabled={!content.trim() || status === "copying"}
       >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            复制中...
-          </>
+        {status === "copying" ? (
+          <Loader2 size={17} className="spin" />
         ) : (
-          <>
-            <Copy className="w-4 h-4 mr-2" />
-            复制到剪贴板
-          </>
+          <Copy size={17} />
         )}
+        {status === "copying" ? "正在复制…" : "复制到剪贴板"}
       </button>
-
-      {/* 清空按钮 */}
       <button
+        className="quiet-button"
         onClick={clearContent}
-        disabled={!hasContent || isLoading}
-        className={
-          "flex items-center justify-center px-6 py-3 rounded-lg " +
-          "font-medium text-sm transition-all duration-200 " +
-          "focus:outline-none focus:ring-2 focus:ring-offset-2 " +
-          "disabled:cursor-not-allowed " +
-          (hasContent && !isLoading
-            ? "bg-gray-600 hover:bg-gray-700 text-white " +
-              "focus:ring-gray-500 shadow-sm hover:shadow-md"
-            : "bg-gray-200 text-gray-400 cursor-not-allowed")
-        }
+        disabled={!content || status === "copying"}
       >
-        <Trash2 className="w-4 h-4 mr-2" />
+        <Trash2 size={16} />
         清空内容
       </button>
     </div>
   );
-};
+}

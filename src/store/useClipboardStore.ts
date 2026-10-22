@@ -1,233 +1,249 @@
-import { create } from 'zustand';
-import { ClipboardFormat, AppState, StatusMessage, AppMode, ClipboardDataItem, ClipboardParseResult, HistoryItem } from '../types';
-import { copyToClipboard, parseClipboardData, addPasteListener } from '../utils/clipboard';
+import { create } from "zustand";
+import {
+  ClipboardFormat,
+  AppState,
+  StatusMessage,
+  AppMode,
+  ClipboardDataItem,
+  ClipboardParseResult,
+  HistoryItem,
+} from "../types";
+import {
+  copyToClipboard,
+  parseClipboardData,
+  addPasteListener,
+} from "../utils/clipboard";
 
 interface ClipboardStore extends AppState {
   // 写入功能状态更新方法
   setContent: (content: string) => void;
   setFormat: (format: ClipboardFormat) => void;
-  setStatus: (status: AppState['status']) => void;
+  setStatus: (status: AppState["status"]) => void;
   setMessage: (message: string) => void;
-  
+
   // 解析功能状态更新方法
   setParseData: (data: ClipboardDataItem[]) => void;
-  setParseStatus: (status: AppState['parseStatus']) => void;
+  setParseStatus: (status: AppState["parseStatus"]) => void;
   setParseMessage: (message: string) => void;
-  
+
   // 模式切换
   setMode: (mode: AppMode) => void;
-  
+
   // 写入功能业务操作方法
   handleCopy: () => Promise<void>;
   clearContent: () => void;
   clearMessage: () => void;
-  
+
   // 解析功能业务操作方法
   handleParse: () => Promise<void>;
   clearParseData: () => void;
   clearParseMessage: () => void;
-  
+
   // 粘贴监听
   enablePasteListener: () => void;
   disablePasteListener: () => void;
-  
+
   // 历史记录管理
   addToHistory: (parseResult: ClipboardParseResult) => void;
   clearHistory: () => void;
   toggleHistoryVisibility: () => void;
   loadHistoryItem: (historyItem: HistoryItem) => void;
-  
+
   // 状态消息管理
   statusMessage: StatusMessage;
-  showStatusMessage: (type: StatusMessage['type'], message: string) => void;
+  showStatusMessage: (type: StatusMessage["type"], message: string) => void;
   hideStatusMessage: () => void;
 }
 
 export const useClipboardStore = create<ClipboardStore>((set, get) => {
   let pasteListenerCleanup: (() => void) | null = null;
-  
+
   return {
     // 初始状态
-    content: '',
-    format: 'text/plain',
-    status: 'idle',
-    message: '',
-    
+    content: "",
+    format: "text/plain",
+    status: "idle",
+    message: "",
+
     // 解析功能状态
     parseData: [],
-    parseStatus: 'idle',
-    parseMessage: '',
-    
+    parseStatus: "idle",
+    parseMessage: "",
+
     // 历史记录状态
     history: {
       items: [],
       maxItems: 20,
-      isVisible: false
+      isVisible: false,
     },
-    
+
     // 通用状态
-    mode: 'parse',
+    mode: "parse",
     lastParseTime: undefined,
-    
+
     statusMessage: {
-      type: 'info',
-      message: '',
-      visible: false
+      type: "info",
+      message: "",
+      visible: false,
     },
 
     // 写入功能状态更新方法
     setContent: (content: string) => set({ content }),
-    
+
     setFormat: (format: ClipboardFormat) => set({ format }),
-    
-    setStatus: (status: AppState['status']) => set({ status }),
-    
+
+    setStatus: (status: AppState["status"]) => set({ status }),
+
     setMessage: (message: string) => set({ message }),
-    
+
     // 解析功能状态更新方法
     setParseData: (data: ClipboardDataItem[]) => set({ parseData: data }),
-    
-    setParseStatus: (status: AppState['parseStatus']) => set({ parseStatus: status }),
-    
+
+    setParseStatus: (status: AppState["parseStatus"]) =>
+      set({ parseStatus: status }),
+
     setParseMessage: (message: string) => set({ parseMessage: message }),
-    
+
     // 模式切换
-    setMode: (mode: AppMode) => {
-      set({ mode });
-      if (mode === 'parse') {
-        get().enablePasteListener();
-      } else {
-        get().disablePasteListener();
-      }
-    },
+    setMode: (mode: AppMode) => set({ mode }),
 
     // 写入功能业务操作方法
     handleCopy: async () => {
       const { content, format } = get();
-      
+
       if (!content.trim()) {
-        get().showStatusMessage('error', '请输入要复制的内容');
+        get().showStatusMessage("error", "请输入要复制的内容");
         return;
       }
 
-      set({ status: 'copying' });
-      
+      set({ status: "copying" });
+
       try {
         const result = await copyToClipboard(content, format);
-        
+
         if (result.success) {
-          set({ status: 'success', message: result.message });
-          get().showStatusMessage('success', result.message);
+          set({ status: "success", message: result.message });
+          get().showStatusMessage("success", result.message);
         } else {
-          set({ status: 'error', message: result.message });
-          get().showStatusMessage('error', result.message);
+          set({ status: "error", message: result.message });
+          get().showStatusMessage("error", result.message);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '复制失败';
-        set({ status: 'error', message: errorMessage });
-        get().showStatusMessage('error', errorMessage);
+        const errorMessage =
+          error instanceof Error ? error.message : "复制失败";
+        set({ status: "error", message: errorMessage });
+        get().showStatusMessage("error", errorMessage);
       }
-      
+
       // 2秒后重置状态
       setTimeout(() => {
-        set({ status: 'idle', message: '' });
+        set({ status: "idle", message: "" });
       }, 2000);
     },
 
     // 清空内容
     clearContent: () => {
-      set({ 
-        content: '', 
-        status: 'idle', 
-        message: '' 
+      set({
+        content: "",
+        status: "idle",
+        message: "",
       });
       get().hideStatusMessage();
     },
 
     // 清空消息
-    clearMessage: () => set({ message: '' }),
-    
+    clearMessage: () => set({ message: "" }),
+
     // 解析功能业务操作方法
     handleParse: async () => {
-      set({ parseStatus: 'parsing' });
-      
+      set({ parseStatus: "parsing" });
+
       try {
         const result = await parseClipboardData();
-        
+
         if (result.success) {
-          set({ 
-            parseStatus: 'success', 
+          set({
+            parseStatus: "success",
             parseMessage: result.message,
             parseData: result.data,
-            lastParseTime: result.timestamp
+            lastParseTime: result.timestamp,
+            parseSource: result.source || "read",
           });
-          get().addToHistory(result);
-          get().showStatusMessage('success', result.message);
+          if (result.data.length) get().addToHistory(result);
+          get().showStatusMessage("success", result.message);
         } else {
-          set({ 
-            parseStatus: 'error', 
+          set({
+            parseStatus: "error",
             parseMessage: result.message,
-            parseData: []
+            parseData: [],
           });
-          get().showStatusMessage('error', result.message);
+          get().showStatusMessage("error", result.message);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '解析失败';
-        set({ 
-          parseStatus: 'error', 
+        const errorMessage =
+          error instanceof Error ? error.message : "解析失败";
+        set({
+          parseStatus: "error",
           parseMessage: errorMessage,
-          parseData: []
+          parseData: [],
         });
-        get().showStatusMessage('error', errorMessage);
+        get().showStatusMessage("error", errorMessage);
       }
-      
+
       // 2秒后重置状态
       setTimeout(() => {
-        set({ parseStatus: 'idle', parseMessage: '' });
+        set({ parseStatus: "idle", parseMessage: "" });
       }, 2000);
     },
-    
+
     // 清空解析数据
     clearParseData: () => {
-      set({ 
-        parseData: [], 
-        parseStatus: 'idle', 
-        parseMessage: '',
-        lastParseTime: undefined
+      set({
+        parseData: [],
+        parseStatus: "idle",
+        parseMessage: "",
+        lastParseTime: undefined,
+        parseSource: undefined,
       });
       get().hideStatusMessage();
     },
-    
+
     // 清空解析消息
-    clearParseMessage: () => set({ parseMessage: '' }),
-    
+    clearParseMessage: () => set({ parseMessage: "" }),
+
     // 启用粘贴监听
     enablePasteListener: () => {
       if (pasteListenerCleanup) {
         pasteListenerCleanup();
       }
-      
-      pasteListenerCleanup = addPasteListener((result: ClipboardParseResult) => {
-        if (result.success) {
-          set({ 
-            parseStatus: 'success', 
-            parseMessage: result.message,
-            parseData: result.data,
-            lastParseTime: result.timestamp
-          });
-          get().addToHistory(result);
-          get().showStatusMessage('success', '检测到粘贴操作，已自动解析剪贴板内容');
-        } else {
-          set({ 
-            parseStatus: 'error', 
-            parseMessage: result.message,
-            parseData: []
-          });
-          get().showStatusMessage('error', result.message);
-        }
-      });
+
+      pasteListenerCleanup = addPasteListener(
+        (result: ClipboardParseResult) => {
+          if (result.success) {
+            set({
+              parseStatus: "success",
+              parseMessage: result.message,
+              parseData: result.data,
+              lastParseTime: result.timestamp,
+              parseSource: result.source || "paste",
+            });
+            if (result.data.length) get().addToHistory(result);
+            get().showStatusMessage(
+              "success",
+              "检测到粘贴操作，已自动解析剪贴板内容",
+            );
+          } else {
+            set({
+              parseStatus: "error",
+              parseMessage: result.message,
+              parseData: [],
+            });
+            get().showStatusMessage("error", result.message);
+          }
+        },
+      );
     },
-    
+
     // 禁用粘贴监听
     disablePasteListener: () => {
       if (pasteListenerCleanup) {
@@ -243,20 +259,20 @@ export const useClipboardStore = create<ClipboardStore>((set, get) => {
         id: `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         timestamp: parseResult.timestamp,
         parseResult,
-        description: `解析了 ${parseResult.data.length} 个数据项`
+        description: `解析了 ${parseResult.data.length} 个数据项`,
       };
-      
+
       const newItems = [newItem, ...history.items];
       // 保持最大数量限制
       if (newItems.length > history.maxItems) {
         newItems.splice(history.maxItems);
       }
-      
+
       set({
         history: {
           ...history,
-          items: newItems
-        }
+          items: newItems,
+        },
       });
     },
 
@@ -266,10 +282,10 @@ export const useClipboardStore = create<ClipboardStore>((set, get) => {
       set({
         history: {
           ...history,
-          items: []
-        }
+          items: [],
+        },
       });
-      get().showStatusMessage('success', '历史记录已清空');
+      get().showStatusMessage("success", "历史记录已清空");
     },
 
     // 切换历史记录可见性
@@ -278,8 +294,8 @@ export const useClipboardStore = create<ClipboardStore>((set, get) => {
       set({
         history: {
           ...history,
-          isVisible: !history.isVisible
-        }
+          isVisible: !history.isVisible,
+        },
       });
     },
 
@@ -288,23 +304,24 @@ export const useClipboardStore = create<ClipboardStore>((set, get) => {
       const { parseResult } = historyItem;
       set({
         parseData: parseResult.data,
-        parseStatus: 'success',
+        parseStatus: "success",
         parseMessage: parseResult.message,
-        lastParseTime: parseResult.timestamp
+        lastParseTime: parseResult.timestamp,
+        parseSource: parseResult.source,
       });
-      get().showStatusMessage('success', '已加载历史记录');
+      get().showStatusMessage("success", "已加载历史记录");
     },
 
     // 显示状态消息
-    showStatusMessage: (type: StatusMessage['type'], message: string) => {
+    showStatusMessage: (type: StatusMessage["type"], message: string) => {
       set({
         statusMessage: {
           type,
           message,
-          visible: true
-        }
+          visible: true,
+        },
       });
-      
+
       // 3秒后自动隐藏
       setTimeout(() => {
         get().hideStatusMessage();
@@ -315,11 +332,11 @@ export const useClipboardStore = create<ClipboardStore>((set, get) => {
     hideStatusMessage: () => {
       set({
         statusMessage: {
-          type: 'info',
-          message: '',
-          visible: false
-        }
+          type: "info",
+          message: "",
+          visible: false,
+        },
       });
-    }
+    },
   };
 });

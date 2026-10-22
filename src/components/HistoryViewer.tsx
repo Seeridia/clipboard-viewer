@@ -1,139 +1,177 @@
-import React from "react";
-import { Clock, Trash2, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { History, Trash2, ArrowUpRight, X } from "lucide-react";
 import { useClipboardStore } from "../store/useClipboardStore";
-import { HistoryItem } from "../types";
+import { formatBytes, formatName } from "../utils/format";
+import type { HistoryItem } from "../types";
 
-const HistoryViewer: React.FC = () => {
-  const { history, toggleHistoryVisibility, clearHistory, loadHistoryItem } =
-    useClipboardStore();
+const historyPreview = (item: HistoryItem) => {
+  const text =
+    item.parseResult.data.find(
+      (data) => data.type === "text/plain" && typeof data.content === "string",
+    ) || item.parseResult.data.find((data) => typeof data.content === "string");
+  if (text) {
+    const content = text.content as string;
+    return (
+      (text.type === "text/html" ? content.replace(/<[^>]*>/g, " ") : content)
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 120) || formatName(text.type)
+    );
+  }
+  const file = item.parseResult.data.find(
+    (data) => typeof data.content === "object" && "name" in data.content,
+  );
+  if (
+    file &&
+    typeof file.content === "object" &&
+    "name" in file.content &&
+    file.content.name
+  )
+    return file.content.name;
+  return item.parseResult.data.map((data) => formatName(data.type)).join(" / ");
+};
 
-  const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+export default function HistoryViewer() {
+  const {
+    history,
+    clearHistory,
+    loadHistoryItem,
+    setMode,
+    toggleHistoryVisibility,
+  } = useClipboardStore();
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
-    if (diffMins < 1) {
-      return "刚刚";
-    } else if (diffMins < 60) {
-      return `${diffMins}分钟前`;
-    } else if (diffHours < 24) {
-      return `${diffHours}小时前`;
-    } else if (diffDays < 7) {
-      return `${diffDays}天前`;
-    } else {
-      return date.toLocaleDateString("zh-CN", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }
-  };
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, []);
 
-  const getDataTypesSummary = (historyItem: HistoryItem) => {
-    const types = historyItem.parseResult.data.map((item) => item.type);
-    const uniqueTypes = [...new Set(types)];
-    return uniqueTypes.join(", ");
+  const load = (item: HistoryItem) => {
+    loadHistoryItem(item);
+    setMode("parse");
+    toggleHistoryVisibility();
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-      {/* 历史记录头部 */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">解析历史</h3>
-          <span className="text-sm text-gray-500">
-            ({history.items.length})
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleHistoryVisibility}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            title={history.isVisible ? "隐藏历史记录" : "显示历史记录"}
-          >
-            {history.isVisible ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-          </button>
-          {history.items.length > 0 && (
-            <button
-              onClick={clearHistory}
-              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-              title="清空历史记录"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+    <dialog
+      ref={dialogRef}
+      id="clipboard-history"
+      className="history-drawer"
+      aria-labelledby="history-heading"
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const buttons = Array.from(
+          event.currentTarget.querySelectorAll<HTMLButtonElement>(
+            "button:not(:disabled)",
+          ),
+        );
+        const first = buttons[0];
+        const last = buttons[buttons.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        toggleHistoryVisibility();
+      }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        if (
+          event.clientX < rect.left ||
+          event.clientX > rect.right ||
+          event.clientY < rect.top ||
+          event.clientY > rect.bottom
+        )
+          toggleHistoryVisibility();
+      }}
+    >
+      <div className="history-drawer-heading">
+        <h2 id="history-heading">
+          <History size={20} />
+          解析历史
+        </h2>
+        <button
+          className="icon-button"
+          onClick={toggleHistoryVisibility}
+          aria-label="关闭历史记录"
+        >
+          <X size={20} />
+        </button>
       </div>
-
-      {/* 历史记录列表 */}
-      {history.isVisible && (
-        <div className="max-h-96 overflow-y-auto">
-          {history.items.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <Clock className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-lg font-medium mb-1">暂无历史记录</p>
-              <p className="text-sm">解析剪贴板内容后，历史记录将显示在这里</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {history.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  onClick={() => loadHistoryItem(item)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          {item.description}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatTimestamp(item.timestamp)}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-600 mb-1">
-                        数据类型: {getDataTypesSummary(item)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        总大小:{" "}
-                        {item.parseResult.data.reduce(
-                          (sum, data) => sum + data.size,
-                          0
-                        )}{" "}
-                        字节
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          loadHistoryItem(item);
-                        }}
-                        className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                        title="加载此记录"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="history-drawer-tools">
+        <span>
+          {history.items.length} / {history.maxItems}
+        </span>
+        <button
+          className="quiet-button small-button"
+          onClick={clearHistory}
+          disabled={!history.items.length}
+        >
+          <Trash2 size={14} />
+          清空历史
+        </button>
+      </div>
+      {history.items.length ? (
+        <div className="history-list">
+          {history.items.map((item) => {
+            const size = formatBytes(
+              item.parseResult.data.reduce((sum, data) => sum + data.size, 0),
+            );
+            return (
+              <button
+                key={item.id}
+                className="history-entry"
+                onClick={() => load(item)}
+              >
+                <strong className="history-preview">
+                  {historyPreview(item)}
+                </strong>
+                <span className="history-entry-formats">
+                  {[
+                    ...new Set(
+                      item.parseResult.data.map((data) =>
+                        formatName(data.type),
+                      ),
+                    ),
+                  ].join(" · ")}
+                </span>
+                <span className="history-entry-details">
+                  <time dateTime={new Date(item.timestamp).toISOString()}>
+                    {new Date(item.timestamp).toLocaleString("zh-CN", {
+                      hour12: false,
+                    })}
+                  </time>
+                  <span>
+                    {size.value} {size.unit}
+                  </span>
+                  <ArrowUpRight size={16} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="history-empty">
+          <History size={30} strokeWidth={1.3} />
+          <span>暂无记录</span>
         </div>
       )}
-    </div>
+    </dialog>
   );
-};
-
-export default HistoryViewer;
+}
