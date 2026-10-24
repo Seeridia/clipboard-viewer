@@ -5,6 +5,14 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -14,6 +22,7 @@ jobs:
         platform: [macos-latest, ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -22,13 +31,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version-file: .node-version
           cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Check frontend code
+        run: npm run lint
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          cache-workspaces: src-tauri -> target
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -45,9 +61,6 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
-      - name: Install frontend dependencies
-        run: npm install
-
       - name: Build Tauri application
         uses: tauri-apps/tauri-action@v0.5.22
 
@@ -55,28 +68,46 @@ jobs:
         id: prepare_artifact
         shell: bash
         run: |
-          ARCH=$(echo "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')
-          ARTIFACT_PATH=""
-          ARTIFACT_NAME=""
+          set -euo pipefail
+          artifact_arch=$(printf '%s' "$RUNNER_ARCH" | tr '[:upper:]' '[:lower:]')
 
-          if [ "${{ runner.os }}" == "macOS" ]; then
-            ARTIFACT_PATH=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" -print -quit)
-            ARTIFACT_NAME="clipboard-viewer-latest-mac-${ARCH}.dmg"
-          elif [ "${{ runner.os }}" == "Windows" ]; then
-            ARTIFACT_PATH=$(find src-tauri/target/release/bundle/msi -name "*.msi" -print -quit)
-            ARTIFACT_NAME="clipboard-viewer-latest-win-${ARCH}.msi"
-          elif [ "${{ runner.os }}" == "Linux" ]; then
-            ARTIFACT_PATH=$(find src-tauri/target/release/bundle/appimage -name "*.AppImage" -print -quit)
-            ARTIFACT_NAME="clipboard-viewer-latest-linux-${ARCH}.AppImage"
+          case "$RUNNER_OS" in
+            macOS)
+              artifact_dir="src-tauri/target/release/bundle/dmg"
+              artifact_pattern="*.dmg"
+              artifact_name="clipboard-viewer-latest-mac-${artifact_arch}.dmg"
+              ;;
+            Windows)
+              artifact_dir="src-tauri/target/release/bundle/msi"
+              artifact_pattern="*.msi"
+              artifact_name="clipboard-viewer-latest-win-${artifact_arch}.msi"
+              ;;
+            Linux)
+              artifact_dir="src-tauri/target/release/bundle/appimage"
+              artifact_pattern="*.AppImage"
+              artifact_name="clipboard-viewer-latest-linux-${artifact_arch}.AppImage"
+              ;;
+            *)
+              echo "::error::Unsupported runner OS: $RUNNER_OS"
+              exit 1
+              ;;
+          esac
+
+          if [ ! -d "$artifact_dir" ]; then
+            echo "::error::Artifact directory not found: $artifact_dir"
+            exit 1
           fi
-          
-          echo "Found artifact at: ${ARTIFACT_PATH}"
-          echo "New artifact name: ${ARTIFACT_NAME}"
-          echo "path=${ARTIFACT_PATH}" >> $GITHUB_OUTPUT
-          echo "name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          artifact_path=$(find "$artifact_dir" -maxdepth 1 -type f -name "$artifact_pattern" -print -quit)
+          if [ -z "$artifact_path" ]; then
+            echo "::error::No $artifact_pattern artifact found in $artifact_dir"
+            exit 1
+          fi
+
+          printf 'path=%s\nname=%s\n' "$artifact_path" "$artifact_name" >> "$GITHUB_OUTPUT"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepare_artifact.outputs.name }}
           path: ${{ steps.prepare_artifact.outputs.path }}
+          if-no-files-found: error

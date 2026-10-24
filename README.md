@@ -17,9 +17,14 @@
 
 ## 快速开始
 
+### 环境要求
+
+使用 Node.js 24 LTS（版本见 `.node-version`），桌面构建还需要 Rust stable 和对应平台的 Tauri 系统依赖。
+
 ### 安装依赖
+
 ```bash
-npm install
+npm ci
 ```
 
 ### 开发

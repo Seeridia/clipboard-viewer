@@ -9,6 +9,10 @@ permissions:
   contents: write
   actions: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish-release:
     strategy:
@@ -17,6 +21,7 @@ jobs:
         platform: [macos-latest, ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -25,15 +30,21 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version-file: .node-version
           cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Check frontend code
+        run: npm run lint
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          cache-workspaces: src-tauri -> target
 
-      # FIX: 重新启用手动安装 Linux 依赖的步骤
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -49,16 +60,24 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
-      - name: Install frontend dependencies
-        run: npm install
-
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0.5.22
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'App Version ${{ github.ref_name }}'
+          releaseName: 'Clipboard Viewer ${{ github.ref_name }}'
           releaseBody: 'See the assets to download this version.'
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
+
+  publish:
+    name: Publish completed release
+    needs: publish-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish release after all platforms succeed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest
